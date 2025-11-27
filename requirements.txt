@@ -1,0 +1,16 @@
+Flask
+requests
+steam-openid
+gunicorn
+python-dotenv
+
+numpy
+pandas
+scipy
+scikit-learn
+
+implicit
+tqdm
+
+h5py
+threadpoolctl

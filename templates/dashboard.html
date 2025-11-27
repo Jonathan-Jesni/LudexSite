@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ludex Dashboard</title>
+
+<style>
+    body {
+        margin:0; font-family:Arial, Helvetica, sans-serif;
+        background:radial-gradient(circle at top left,#1b2838,#0b1622 70%);
+        color:#c7d5e0;
+    }
+    .steam-header {
+        background:#171a21; height:90px; display:flex; align-items:center;
+        justify-content:space-between; padding:0 35px;
+        box-shadow:0 4px 8px rgba(0,0,0,0.45); position:relative;
+    }
+    .header-title { font-size:32px; font-weight:bold; }
+    .profile-area { display:flex; align-items:center; gap:12px; cursor:pointer; }
+    .avatar,.avatar-large {
+        background-size:cover; background-position:center; border-radius:6px;
+    }
+    .avatar { width:42px; height:42px; }
+    .avatar-large { width:72px; height:72px; margin:0 auto 10px; }
+    .player-name { font-size:18px; font-weight:bold; }
+
+    .dropdown {
+        position:absolute; top:90px; right:35px; width:240px; padding:12px;
+        background:#1b2838; border:1px solid rgba(255,255,255,0.08);
+        border-radius:6px; box-shadow:0 0 10px rgba(0,0,0,0.5);
+        display:none; flex-direction:column; animation:fadeIn .15s;
+    }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(-6px);} }
+    .dropdown .name { text-align:center; font-weight:bold; margin-bottom:8px; }
+
+    .btn-green {
+        display:inline-block; margin-top:28px; padding:14px 30px;
+        background:#5fa32d; color:#fff; font-weight:bold; text-decoration:none;
+        border-radius:8px; font-size:20px;
+        box-shadow:0 0 10px rgba(95,163,45,.6); transition:.18s;
+    }
+    .btn-green:hover { background:#72c23a; transform:scale(1.04); }
+
+    .logout-btn {
+        padding:10px; border-radius:6px; background:#5fa32d;
+        color:white; text-align:center; font-weight:bold; text-decoration:none;
+        transition:.15s;
+    }
+    .logout-btn:hover { background:#72c23a; transform:scale(1.02); }
+
+    .content { padding:40px; text-align:center; }
+    .box {
+        margin:100px auto 0; width:640px; padding:50px;
+        border-radius:10px; background:rgba(255,255,255,0.03);
+        border:1px solid rgba(255,255,255,0.08);
+        box-shadow:0 0 30px rgba(0,0,0,0.45);
+    }
+    .steamid-box {
+        margin:auto; width:75%; padding:16px; font-size:20px;
+        border-radius:6px; background:rgba(255,255,255,0.05);
+        border:1px solid rgba(255,255,255,0.08);
+    }
+</style>
+</head>
+
+<body>
+
+<div class="steam-header">
+    <div class="header-title">Ludex</div>
+
+    <div id="profileBtn" class="profile-area">
+        <div class="avatar" style="background-image:url('{{ avatar or "/static/default-avatar.png" }}')"></div>
+        <div class="player-name">{{ username or steamid }}</div>
+    </div>
+
+    <div id="dropdown" class="dropdown">
+        <div class="avatar-large" style="background-image:url('{{ avatar or "/static/default-avatar.png" }}')"></div>
+        <div class="name">{{ username or steamid }}</div>
+        <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+</div>
+
+<div class="content">
+    <div class="box">
+        <h2>Welcome to Your Dashboard</h2>
+        <div class="steamid-box">Steam ID: {{ steamid }}</div>
+
+        <p style="font-size:18px;color:#b8c7d1;margin-top:20px;">
+            You're now signed in using your Steam account.
+        </p>
+
+        <a href="/recommend" class="btn-green">Recommend Games</a>
+    </div>
+</div>
+
+<script>
+    const drop = document.getElementById("dropdown"),
+          btn = document.getElementById("profileBtn");
+
+    btn.onclick = ()=> drop.style.display = drop.style.display==="flex" ? "none" : "flex";
+
+    document.addEventListener("click", e=>{
+        if(!btn.contains(e.target) && !drop.contains(e.target)) drop.style.display="none";
+    });
+</script>
+
+</body>
+</html>

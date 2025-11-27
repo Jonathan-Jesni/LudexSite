@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ludex — Sign in with Steam</title>
+
+<style>
+    body {
+        margin:0; font-family:Arial, Helvetica, sans-serif;
+        background:radial-gradient(circle at top left,#1b2838,#0b1622 70%);
+        color:#c7d5e0;
+    }
+    .navbar {
+        background:#171a21; padding:18px 30px;
+        box-shadow:0 3px 6px rgba(0,0,0,0.5);
+    }
+    .title { font-size:32px; font-weight:bold; }
+
+    .container {
+        height:calc(100vh - 72px);
+        display:flex; align-items:center; justify-content:center;
+    }
+    .login-box {
+        width:420px; text-align:center; padding:36px;
+        background:rgba(255,255,255,0.03);
+        border-radius:8px; border:1px solid rgba(255,255,255,0.08);
+        box-shadow:0 0 25px rgba(0,0,0,0.4);
+    }
+    h2 { margin-bottom:20px; font-size:26px; color:#fff; }
+
+    .steam-btn {
+        display:inline-block; padding:14px 28px;
+        background:#5fa32d; color:#fff; border-radius:6px;
+        font-size:18px; font-weight:bold; text-decoration:none;
+        box-shadow:0 0 10px rgba(95,163,45,0.6);
+        transition:.18s;
+    }
+    .steam-btn:hover {
+        background:#72c23a; transform:scale(1.04);
+        box-shadow:0 0 18px rgba(114,194,58,0.8);
+    }
+</style>
+</head>
+
+<body>
+    <div class="navbar"><div class="title">Ludex</div></div>
+
+    <div class="container">
+        <div class="login-box">
+            <h2>Sign in with Steam</h2>
+            <a class="steam-btn" href="/login">SIGN IN WITH STEAM</a>
+
+            <p style="margin-top:18px; color:#95a5b0; font-size:14px;">
+                We will only read your public Steam profile (username & avatar).
+            </p>
+        </div>
+    </div>
+</body>
+</html>

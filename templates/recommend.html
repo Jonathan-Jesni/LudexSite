@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Your Recommendations – Ludex</title>
+
+<style>
+    body {
+        margin:0; font-family:Arial, Helvetica, sans-serif;
+        background:radial-gradient(circle at top left,#1b2838,#0b1622 70%);
+        color:#c7d5e0;
+    }
+
+    /* HEADER + PROFILE */
+    .steam-header {
+        background:#171a21; height:90px; display:flex;
+        align-items:center; justify-content:space-between;
+        padding:0 35px; box-shadow:0 4px 8px rgba(0,0,0,0.45);
+        position:relative;
+    }
+    .header-title { font-size:32px; font-weight:bold; }
+    .profile-area { display:flex; align-items:center; gap:12px; cursor:pointer; }
+    .avatar,.avatar-large {
+        background-size:cover; background-position:center; border-radius:6px;
+    }
+    .avatar { width:42px; height:42px; border-radius:4px; }
+    .avatar-large { width:72px; height:72px; margin:0 auto 10px; }
+    .player-name,.name { font-size:18px; font-weight:bold; }
+
+    /* DROPDOWN */
+    .dropdown {
+        position:absolute; top:90px; right:35px;
+        width:240px; padding:12px; background:#1b2838;
+        border-radius:6px; display:none; flex-direction:column;
+        border:1px solid rgba(255,255,255,0.08);
+        box-shadow:0 0 10px rgba(0,0,0,0.5);
+        animation:fade .15s;
+    }
+    @keyframes fade { from{opacity:0;transform:translateY(-6px);} }
+
+    .logout-btn {
+        display:block; margin-top:6px; padding:10px;
+        background:#5fa32d; color:#fff; border-radius:6px;
+        text-decoration:none; font-weight:bold; text-align:center;
+        transition:.15s;
+    }
+    .logout-btn:hover { background:#72c23a; transform:scale(1.02); }
+
+    /* CONTENT */
+    .content { display:flex; justify-content:center; padding:50px 0; }
+    .box {
+        width:900px; padding:40px; text-align:center;
+        background:rgba(255,255,255,0.03);
+        border:1px solid rgba(255,255,255,0.08);
+        border-radius:12px; 
+        box-shadow:0 0 30px rgba(0,0,0,0.45);
+    }
+
+    /* FIX: GRID NOW SHOWS ALL CARDS */
+    .grid {
+        display:grid;
+        gap:20px;
+        grid-template-columns:1fr;
+        width:100%;
+    }
+    @media(min-width:980px){
+        .grid {
+            grid-template-columns:repeat(2, 1fr);
+        }
+    }
+
+    .card {
+        display:flex; gap:16px; padding:14px; cursor:pointer;
+        background:rgba(255,255,255,0.03);
+        border-radius:8px; border:1px solid rgba(255,255,255,0.06);
+        transition:.15s;
+    }
+    .card:hover{ transform:translateY(-6px); box-shadow:0 12px 30px rgba(0,0,0,0.6); }
+
+    .thumb {
+        width:160px; height:90px; flex:0 0 160px;
+        border-radius:6px; overflow:hidden;
+    }
+    .thumb img { width:100%; height:100%; object-fit:cover; }
+
+    .meta { flex:1; text-align:left; }
+    .meta h3 { margin:0; font-size:18px; color:#fff; }
+    .meta p { margin:6px 0 0; font-size:13px; color:#b8c7d1; }
+
+    /* MODAL */
+    .modal-backdrop {
+        position:fixed; inset:0; display:none;
+        align-items:center; justify-content:center;
+        backdrop-filter:blur(6px); background:rgba(2,6,10,0.6);
+        z-index:2000;
+    }
+    .modal {
+        width:880px; max-width:95%; padding:18px;
+        background:#071018; border-radius:10px;
+        color:#dfeff7; box-shadow:0 30px 80px rgba(0,0,0,0.7);
+    }
+    .modal-top { display:flex; gap:18px; }
+    .modal-img { width:360px; flex:0 0 360px; border-radius:8px; overflow:hidden; }
+    .modal-img img { width:100%; }
+    .modal-info { flex:1; text-align:left; }
+    .close-btn {
+        float:right; background:none; border:0;
+        font-size:20px; color:#cfdfe9; cursor:pointer;
+    }
+    .desc {
+        margin-top:12px; font-size:14px; line-height:1.4;
+        max-height:240px; overflow:auto; padding-right:8px;
+        color:#d5e6f0;
+    }
+    .btn-steam {
+        display:inline-block; margin-top:12px; padding:10px 14px;
+        background:#5fa32d; color:white; border-radius:8px;
+        font-weight:700; text-decoration:none;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="steam-header">
+    <div class="header-title">Ludex</div>
+
+    <div id="profileBtn" class="profile-area">
+        <div class="avatar" style="background-image:url('{{ avatar or "/static/default-avatar.png" }}')"></div>
+        <div class="player-name">{{ username or steamid }}</div>
+    </div>
+
+    <div id="dropdown" class="dropdown">
+        <div class="avatar-large" style="background-image:url('{{ avatar or "/static/default-avatar.png" }}')"></div>
+        <div class="name">{{ username or steamid }}</div>
+        <a class="logout-btn" href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="content">
+    <div class="box">
+        <h2>Your Game Recommendations</h2>
+
+        {% if recs %}
+        <div class="grid">
+            {% for r in recs %}
+            <div class="card" onclick="openModal(this)"
+                data-appid="{{ r.appid }}"
+                data-name="{{ r.name|e }}"
+                data-image="{{ r.image|e }}"
+                data-short="{{ r.short_description|e }}"
+                data-genres="{{ (r.genres|join(', '))|e }}"
+                data-price="{{ r.price|e }}"
+                data-metacritic="{{ r.metacritic or '' }}"
+                data-release="{{ r.release_date|e }}"
+                data-recommendations="{{ r.recommendations or '' }}">
+
+                <div class="thumb"><img src="{{ r.image }}" alt="{{ r.name }}"></div>
+
+                <div class="meta">
+                    <h3>{{ r.name }}</h3>
+                    <p>{{ r.genres|join(', ') }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No recommendations found.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- MODAL -->
+<div id="modalBackdrop" class="modal-backdrop" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <button class="close-btn" onclick="closeModal(event)">&times;</button>
+
+        <div class="modal-top">
+            <div class="modal-img"><img id="modalImage"></div>
+            <div class="modal-info">
+                <h2 id="modalTitle"></h2>
+                <div id="modalSub"></div>
+
+                <div><strong>Price:</strong> <span id="modalPrice"></span></div>
+                <div style="margin-top:6px;"><strong>Release:</strong> <span id="modalRelease"></span></div>
+                <div style="margin-top:6px;"><strong>Rating:</strong> <span id="modalRating"></span></div>
+
+                <a id="modalSteamBtn" class="btn-steam" target="_blank">View on Steam</a>
+            </div>
+        </div>
+
+        <div class="desc" id="modalDesc"></div>
+    </div>
+</div>
+
+<script>
+    const dd = document.getElementById("dropdown"),
+          btn = document.getElementById("profileBtn");
+
+    btn.onclick = ()=> dd.style.display = dd.style.display==="flex" ? "none" : "flex";
+
+    document.addEventListener("click", e=>{
+        if(!btn.contains(e.target) && !dd.contains(e.target)) dd.style.display="none";
+    });
+
+    function openModal(c){
+        modalImage.src = c.dataset.image;
+        modalTitle.textContent = c.dataset.name;
+        modalPrice.textContent = c.dataset.price || "N/A";
+        modalRelease.textContent = c.dataset.release || "Unknown";
+        modalRating.textContent = c.dataset.metacritic || "N/A";
+        modalDesc.innerHTML = c.dataset.short || "No description available";
+
+        const sub = [];
+        if(c.dataset.genres) sub.push(c.dataset.genres);
+        if(c.dataset.recommendations) sub.push(c.dataset.recommendations+" players recommended");
+        modalSub.textContent = sub.join(" • ");
+
+        modalSteamBtn.href = "https://store.steampowered.com/app/" + c.dataset.appid;
+        modalBackdrop.style.display="flex";
+    }
+
+    function closeModal(){ modalBackdrop.style.display="none"; }
+    document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); });
+</script>
+
+</body>
+</html>
