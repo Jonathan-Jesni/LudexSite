@@ -34,8 +34,8 @@ app.secret_key = os.environ.get(
 )
 
 STEAM_API_KEY = os.environ.get("STEAM_API_KEY", "STEAM_API_KEY")
-realm = "ludex.up.railway.app"
-return_to = "ludex.up.railway.app/authorize"
+realm = "https://ludex.up.railway.app/"
+return_to = "https://ludex.up.railway.app//authorize"
 
 
 # ======================================================
