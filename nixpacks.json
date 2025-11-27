@@ -1,8 +1,10 @@
 {
-  "providers": ["python"],
   "phases": {
     "setup": {
-      "nixPkgs": ["gcc", "gomp"]
+      "nixPkgs": [
+        "gcc",
+        "gfortran"
+      ]
     }
   }
 }
