@@ -3,6 +3,7 @@ requests
 steam-openid
 gunicorn
 python-dotenv
+beautifullsoup4
 
 numpy
 pandas
