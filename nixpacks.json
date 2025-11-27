@@ -2,8 +2,7 @@
   "phases": {
     "setup": {
       "nixPkgs": [
-        "gcc",
-        "gfortran"
+        "gcc13"
       ]
     }
   }
