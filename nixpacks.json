@@ -1,0 +1,13 @@
+{
+  "phases": {
+    "setup": {
+      "nixPkgs": [
+        "gcc13",
+        "python311"
+      ]
+    }
+  },
+  "environment": {
+    "PYTHON_BIN": "python3.11"
+  }
+}
