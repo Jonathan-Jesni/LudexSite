@@ -60,6 +60,53 @@
         border-radius:6px; background:rgba(255,255,255,0.05);
         border:1px solid rgba(255,255,255,0.08);
     }
+
+    /* ================================
+       STEAM STYLE LOADING OVERLAY
+       ================================ */
+    #steamLoader {
+        display:none;
+        position:fixed;
+        top:0; left:0;
+        width:100%; height:100%;
+        background:rgba(10, 20, 35, 0.85);
+        backdrop-filter:blur(3px);
+        z-index:9999;
+        text-align:center;
+        justify-content:center;
+        align-items:center;
+        flex-direction:column;
+    }
+
+    .steam-loading-ring {
+        width:80px;
+        height:80px;
+        border:6px solid #1b2838;
+        border-top:6px solid #66c0f4;
+        border-radius:50%;
+        animation:steam-spin 0.9s linear infinite;
+        box-shadow:0 0 12px rgba(102,192,244,0.4);
+    }
+
+    @keyframes steam-spin {
+        0% { transform:rotate(0deg); }
+        100% { transform:rotate(360deg); }
+    }
+
+    .steam-loading-text {
+        margin-top:18px;
+        font-size:24px;
+        letter-spacing:3px;
+        color:#c7d5e0;
+        font-weight:bold;
+        animation:steam-text-glow 1.4s ease-in-out infinite;
+    }
+
+    @keyframes steam-text-glow {
+        0% { opacity:0.5; text-shadow:0 0 4px #66c0f4; }
+        50% { opacity:1; text-shadow:0 0 14px #66c0f4; }
+        100% { opacity:0.5; text-shadow:0 0 4px #66c0f4; }
+    }
 </style>
 </head>
 
@@ -89,8 +136,16 @@
             You're now signed in using your Steam account.
         </p>
 
-        <a href="/recommend" class="btn-green">Recommend Games</a>
+        <a href="/recommend" class="btn-green" onclick="showSteamLoader()">Recommend Games</a>
     </div>
+</div>
+
+<!-- ==========================
+     STEAM LOADING OVERLAY
+     ========================== -->
+<div id="steamLoader">
+    <div class="steam-loading-ring"></div>
+    <div class="steam-loading-text">LOADING...</div>
 </div>
 
 <script>
@@ -102,6 +157,11 @@
     document.addEventListener("click", e=>{
         if(!btn.contains(e.target) && !drop.contains(e.target)) drop.style.display="none";
     });
+
+    // Show Steam loader on click
+    function showSteamLoader() {
+        document.getElementById("steamLoader").style.display = "flex";
+    }
 </script>
 
 </body>
