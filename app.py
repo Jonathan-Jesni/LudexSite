@@ -15,13 +15,13 @@ from CF.CF_recommend import generate_cf_recommendations
 
 # --- HYBRID SETTINGS ---
 TOP_N = 20
-CANDIDATE_POOL_SIZE = 300   # Render safe
+CANDIDATE_POOL_SIZE = 300  
 MIN_PLAYTIME = 60
 LAMBDA_MMR_CBF = 0.0
 LAMBDA_MMR_HYBRID = 0.6
 BETA_ANCHOR_BLEND = 0.3
 ALPHA_HYBRID = 0.35
-METADATA_THREADS = 4        # Render free tier safe
+METADATA_THREADS = 4    
 
 
 # ======================================================
