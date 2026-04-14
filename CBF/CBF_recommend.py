@@ -50,7 +50,7 @@ def generate_cbf_recommendations(
     *,
     top_n: int = 20,
     min_playtime: int = 60,
-    candidate_pool_size: int = 500,
+    candidate_pool_size: int = 100,
     beta_anchor_blend: float = 0.3,
     lambda_mmr: float = 0.7,
 ) -> pd.DataFrame:
