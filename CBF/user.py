@@ -333,7 +333,7 @@ def recommend_cbf_user_plus_anchors_mmr(
     owned_mapped: pd.DataFrame,
     user_vec: np.ndarray,
     top_n: int = 20,
-    candidate_pool_size: int = 100,
+    candidate_pool_size: int = 50,
     min_playtime: int = 60,
     beta: float = 0.3,
     lambda_mmr: float = 0.7,

@@ -25,7 +25,7 @@ def get_cbf_data():
 
 # --- HYBRID SETTINGS ---
 TOP_N = 20
-CANDIDATE_POOL_SIZE = 100  
+CANDIDATE_POOL_SIZE = 50  
 MIN_PLAYTIME = 60
 LAMBDA_MMR_CBF = 0.0
 LAMBDA_MMR_HYBRID = 0.6
@@ -239,12 +239,12 @@ def recommend():
     cbf_recs = generate_cbf_recommendations(
         steamid64=str(steamid),
         api_key=STEAM_API_KEY,
-        top_n=40
+        top_n=25
     )
 
     cf_recs = generate_cf_recommendations(
         steamid64=str(steamid),
-        top_k=40
+        top_k=25
     )
 
     if cbf_recs is None or cbf_recs.empty:
@@ -259,7 +259,7 @@ def recommend():
 
     merged["score"] = 0.6 * merged["cbf_score"] + 0.4 * merged["cf_score"]
 
-    candidates = merged.sort_values("score", ascending=False).head(40).reset_index(drop=True)
+    candidates = merged.sort_values("score", ascending=False).head(25).reset_index(drop=True)
 
     appid_to_idx = {int(a): i for i, a in enumerate(catalogue_df["appid"])}
 
@@ -270,8 +270,8 @@ def recommend():
         if idx >= 0:
             valid_rows.append(idx)
             valid_indices.append(i)
-    valid_rows = valid_rows[:30]
-    valid_indices = valid_indices[:30]
+    valid_rows = valid_rows[:20]
+    valid_indices = valid_indices[:20]
 
     if not valid_rows:
         final = candidates.head(20)
