@@ -43,8 +43,6 @@ from .user import (
     build_user_content_profile,
     recommend_cbf_user_plus_anchors_mmr,
 )
-from .catalogue_update import ensure_user_games_in_catalogue_and_refresh
-
 
 def generate_cbf_recommendations(
     steamid64: str,
@@ -110,11 +108,6 @@ def generate_cbf_recommendations(
     # 3) Ensure all owned games exist in the catalogue; if not, extend
     #    catalogue and rebuild the feature matrix BEFORE building
     #    the user profile.
-    df, full_matrix_norm = ensure_user_games_in_catalogue_and_refresh(
-        owned_df=owned_df,
-        catalogue_df=df,
-    )
-
     # After this point, df and full_matrix_norm are guaranteed to include
     # all games from owned_df (if metadata could be fetched).
 
