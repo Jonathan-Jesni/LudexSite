@@ -31,7 +31,7 @@ LAMBDA_MMR_CBF = 0.0
 LAMBDA_MMR_HYBRID = 0.6
 BETA_ANCHOR_BLEND = 0.3
 ALPHA_HYBRID = 0.35
-METADATA_THREADS = 4    
+METADATA_THREADS = 2    
 
 
 # ======================================================
@@ -140,7 +140,7 @@ def mmr_rerank(appids, hybrid_scores, lambda_mmr, top_k):
     mat_rows = row_idx[mask]
 
     cand_vecs = full_matrix_norm[mat_rows]
-    sim_matrix = (cand_vecs @ cand_vecs.T).toarray()
+    sim_matrix = cand_vecs @ cand_vecs.T
 
     selected_local = []
     r_valid = hybrid_scores[mask]
@@ -239,12 +239,12 @@ def recommend():
     cbf_recs = generate_cbf_recommendations(
         steamid64=str(steamid),
         api_key=STEAM_API_KEY,
-        top_n=100
+        top_n=60
     )
 
     cf_recs = generate_cf_recommendations(
         steamid64=str(steamid),
-        top_k=100
+        top_k=60
     )
 
     if cbf_recs is None or cbf_recs.empty:
@@ -259,7 +259,7 @@ def recommend():
 
     merged["score"] = 0.6 * merged["cbf_score"] + 0.4 * merged["cf_score"]
 
-    candidates = merged.sort_values("score", ascending=False).head(120).reset_index(drop=True)
+    candidates = merged.sort_values("score", ascending=False).head(60).reset_index(drop=True)
 
     appid_to_idx = {int(a): i for i, a in enumerate(catalogue_df["appid"])}
 
@@ -270,12 +270,14 @@ def recommend():
         if idx >= 0:
             valid_rows.append(idx)
             valid_indices.append(i)
+    valid_rows = valid_rows[:50]
+    valid_indices = valid_indices[:50]
 
     if not valid_rows:
         final = candidates.head(20)
     else:
         vecs = full_matrix[valid_rows]
-        sim_matrix = (vecs @ vecs.T).toarray()
+        sim_matrix = vecs @ vecs.T
 
         scores = candidates.iloc[valid_indices]["score"].values
         selected = []
@@ -284,8 +286,8 @@ def recommend():
             if not selected:
                 idx = int(np.argmax(scores))
             else:
-                max_sim = sim_matrix[:, selected].max(axis=1)
-                mmr = 0.7 * scores[:len(valid_rows)] - 0.3 * max_sim
+                max_sim = np.array(sim_matrix[:, selected].max(axis=1)).ravel()
+                mmr = 0.7 * scores - 0.3 * max_sim
                 mmr[selected] = -np.inf
                 idx = int(np.argmax(mmr))
             selected.append(idx)
@@ -293,7 +295,7 @@ def recommend():
         final = candidates.iloc[[valid_indices[i] for i in selected]]
     recs = final.to_dict(orient="records")
 
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from concurrent.futures import ThreadPoolExecutor
 
     def enrich(r):
         meta = cached_store_metadata(str(r["appid"]))
