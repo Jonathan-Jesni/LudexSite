@@ -276,20 +276,32 @@ def recommend():
     if not valid_rows:
         final = candidates.head(20)
     else:
-        vecs = full_matrix[valid_rows]
-        sim_matrix = vecs @ vecs.T
-
         scores = candidates.iloc[valid_indices]["score"].values
         selected = []
+        selected_global = []
 
         for _ in range(min(20, len(valid_rows))):
             if not selected:
                 idx = int(np.argmax(scores))
             else:
-                max_sim = np.array(sim_matrix[:, selected].max(axis=1)).ravel()
+                sims = []
+                for i, global_idx in enumerate(valid_rows):
+                    if i in selected:
+                        sims.append(0)
+                        continue
+
+                    row_vec = full_matrix[global_idx]
+                    sel_vecs = full_matrix[[valid_rows[j] for j in selected]]
+
+                    sim = row_vec.dot(sel_vecs.T)
+                    sim = np.array(sim).ravel()
+                    sims.append(sim.max() if sim.size > 0 else 0)
+
+                max_sim = np.array(sims)
                 mmr = 0.7 * scores - 0.3 * max_sim
                 mmr[selected] = -np.inf
                 idx = int(np.argmax(mmr))
+
             selected.append(idx)
 
         final = candidates.iloc[[valid_indices[i] for i in selected]]
