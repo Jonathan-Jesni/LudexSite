@@ -13,6 +13,16 @@ from CBF.CBF_recommend import generate_cbf_recommendations
 from CBF.cbf_model import load_catalogue_and_features
 from CF.CF_recommend import generate_cf_recommendations
 
+CATALOGUE_DF = None
+FULL_MATRIX = None
+
+def get_cbf_data():
+    global CATALOGUE_DF, FULL_MATRIX
+    if CATALOGUE_DF is None or FULL_MATRIX is None:
+        from CBF.cbf_model import load_catalogue_and_features
+        CATALOGUE_DF, FULL_MATRIX = load_catalogue_and_features()
+    return CATALOGUE_DF, FULL_MATRIX
+
 # --- HYBRID SETTINGS ---
 TOP_N = 20
 CANDIDATE_POOL_SIZE = 300  
@@ -94,9 +104,7 @@ def cached_store_metadata(appid: str):
 # ======================================================
 # LOAD CATALOGUE + MATRIX WITH CACHE
 # ======================================================
-@lru_cache(maxsize=1)
-def load_cached_catalogue_and_features():
-    return load_catalogue_and_features()
+# Now using get_cbf_data()
 
 
 # ======================================================
@@ -116,7 +124,7 @@ def normalise_scores(arr):
 # MMR
 # ======================================================
 def mmr_rerank(appids, hybrid_scores, lambda_mmr, top_k):
-    catalogue_df, full_matrix_norm = load_cached_catalogue_and_features()
+    catalogue_df, full_matrix_norm = get_cbf_data()
     appid_to_idx = {int(a): i for i, a in enumerate(catalogue_df["appid"].astype(int))}
 
     appids = np.asarray(appids, dtype=int)
@@ -221,70 +229,70 @@ def recommend():
 
     print("0) start:", time.time() - t0)
 
-    # 1) CBF
-    cbf = generate_cbf_recommendations(
-        steamid64=steamid,
+    from CF.CF_recommend import generate_cf_recommendations
+    from CBF.CBF_recommend import generate_cbf_recommendations
+    import numpy as np
+    import pandas as pd
+
+    catalogue_df, full_matrix = get_cbf_data()
+
+    cbf_recs = generate_cbf_recommendations(
+        steamid64=str(steamid),
         api_key=STEAM_API_KEY,
-        top_n=CANDIDATE_POOL_SIZE,
-        min_playtime=MIN_PLAYTIME,
-        candidate_pool_size=CANDIDATE_POOL_SIZE,
-        beta_anchor_blend=BETA_ANCHOR_BLEND,
-        lambda_mmr=LAMBDA_MMR_CBF
+        top_n=100
     )
-    print("1) CBF done:", time.time() - t0)
 
-    if "cbf_anchor_combined" in cbf.columns:
-        cbf["cbf_score_raw"] = cbf["cbf_anchor_combined"]
+    cf_recs = generate_cf_recommendations(
+        steamid64=str(steamid),
+        top_k=100
+    )
+
+    if cbf_recs is None or cbf_recs.empty:
+        merged = cf_recs.copy()
+    elif cf_recs is None or cf_recs.empty:
+        merged = cbf_recs.copy()
     else:
-        cbf["cbf_score_raw"] = 0.0
-    cbf_df = cbf[["appid", "title", "cbf_score_raw"]]
+        merged = pd.merge(cbf_recs, cf_recs, on="appid", how="outer")
 
-    # 2) CF
-    cf = generate_cf_recommendations(
-        steamid64=steamid,
-        top_k=CANDIDATE_POOL_SIZE
-    )
-    print("2) CF done:", time.time() - t0)
+    merged["cbf_score"] = merged.get("cbf_score", 0).fillna(0)
+    merged["cf_score"] = merged.get("cf_score_raw", 0).fillna(0)
 
-    # 3) Merge
-    if cf is not None and not cf.empty:
-        union = pd.merge(
-            cbf_df,
-            cf[["appid", "cf_score_raw"]],
-            on="appid",
-            how="outer"
-        )
+    merged["score"] = 0.6 * merged["cbf_score"] + 0.4 * merged["cf_score"]
+
+    candidates = merged.sort_values("score", ascending=False).head(120).reset_index(drop=True)
+
+    appid_to_idx = {int(a): i for i, a in enumerate(catalogue_df["appid"])}
+
+    valid_rows = []
+    valid_indices = []
+    for i, appid in enumerate(candidates["appid"]):
+        idx = appid_to_idx.get(int(appid), -1)
+        if idx >= 0:
+            valid_rows.append(idx)
+            valid_indices.append(i)
+
+    if not valid_rows:
+        final = candidates.head(20)
     else:
-        union = cbf_df.copy()
-        union["cf_score_raw"] = 0.0
+        vecs = full_matrix[valid_rows]
+        sim_matrix = (vecs @ vecs.T).toarray()
 
-    print("3) merge:", time.time() - t0)
+        scores = candidates.iloc[valid_indices]["score"].values
+        selected = []
 
-    # Normalize
-    union = union.fillna({"cbf_score_raw": 0.0, "cf_score_raw": 0.0})
-    union["cbf_norm"] = normalise_scores(union["cbf_score_raw"])
-    union["cf_norm"] = normalise_scores(union["cf_score_raw"])
-    union["hybrid"] = (
-        ALPHA_HYBRID * union["cf_norm"] +
-        (1 - ALPHA_HYBRID) * union["cbf_norm"]
-    )
+        for _ in range(min(20, len(valid_rows))):
+            if not selected:
+                idx = int(np.argmax(scores))
+            else:
+                max_sim = sim_matrix[:, selected].max(axis=1)
+                mmr = 0.7 * scores[:len(valid_rows)] - 0.3 * max_sim
+                mmr[selected] = -np.inf
+                idx = int(np.argmax(mmr))
+            selected.append(idx)
 
-    print("4) hybrid computed:", time.time() - t0)
-
-    # 4) MMR
-    selected = mmr_rerank(
-        appids=union["appid"].astype(int).to_numpy(),
-        hybrid_scores=union["hybrid"].to_numpy(),
-        lambda_mmr=LAMBDA_MMR_HYBRID,
-        top_k=TOP_N
-    )
-    print("5) MMR rerank:", time.time() - t0)
-
-    # Convert to list
-    final = union.iloc[selected].reset_index(drop=True)
+        final = candidates.iloc[[valid_indices[i] for i in selected]]
     recs = final.to_dict(orient="records")
 
-    # 5) Metadata
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     def enrich(r):
@@ -294,7 +302,7 @@ def recommend():
 
     with ThreadPoolExecutor(max_workers=METADATA_THREADS) as exe:
         futures = [exe.submit(enrich, r) for r in recs]
-        recs = [f.result() for f in as_completed(futures)]
+        recs = [f.result() for f in futures]
 
     print("6) metadata:", time.time() - t0)
     print("===== END TIMING =====\n")
@@ -316,7 +324,7 @@ def warm_cache_async():
 
     def _load():
         try:
-            load_cached_catalogue_and_features()
+            get_cbf_data()
             app.logger.info("Pre-warm complete.")
         except Exception:
             app.logger.exception("Pre-warm failed.")
@@ -333,4 +341,4 @@ warm_cache_async()
 # RUN APP
 # ======================================================
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
