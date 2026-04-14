@@ -294,7 +294,7 @@ def recommend():
                     sel_vecs = full_matrix[[valid_rows[j] for j in selected]]
 
                     sim = row_vec.dot(sel_vecs.T)
-                    sim = np.array(sim).ravel()
+                    sim = sim.toarray().ravel() # <--- THE FIX
                     sims.append(sim.max() if sim.size > 0 else 0)
 
                 max_sim = np.array(sims)

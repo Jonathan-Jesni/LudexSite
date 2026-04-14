@@ -248,7 +248,7 @@ def compute_anchor_soft_scores(
 
     # Similarity matrix: (m, d) * (d, k) → (m, k)
     sims = cand_mat.dot(anchor_mat.T)
-    sims = np.array(sims)
+    sims = sims.toarray()
 
     # Weighted sum over anchors → (m,)
     anchor_soft = sims.dot(weights)
@@ -304,7 +304,7 @@ def mmr_rerank(
                 sims = full_matrix_norm[global_idx].dot(
                     full_matrix_norm[selected_global].T
                 )
-                sims = np.array(sims).ravel()
+                sims = sims.toarray().ravel() # <--- THE FIX
                 max_sim = float(sims.max()) if sims.size > 0 else 0.0
 
                 mmr_score = lambda_mmr * relevance - (1.0 - lambda_mmr) * max_sim
