@@ -254,8 +254,11 @@ def recommend():
     else:
         merged = pd.merge(cbf_recs, cf_recs, on="appid", how="outer")
 
-    merged["cbf_score"] = merged.get("cbf_score", 0).fillna(0)
-    merged["cf_score"] = merged.get("cf_score_raw", 0).fillna(0)
+    # Safely extract CBF score (using the anchor-blended score for better accuracy)
+    merged["cbf_score"] = merged["cbf_anchor_combined"].fillna(0) if "cbf_anchor_combined" in merged.columns else 0
+    
+    # Safely extract CF score
+    merged["cf_score"] = merged["cf_score_raw"].fillna(0) if "cf_score_raw" in merged.columns else 0
 
     merged["score"] = 0.6 * merged["cbf_score"] + 0.4 * merged["cf_score"]
 
