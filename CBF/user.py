@@ -247,7 +247,8 @@ def compute_anchor_soft_scores(
     anchor_mat = full_matrix_norm[anchor_row_idxs]    # (k, d)
 
     # Similarity matrix: (m, d) * (d, k) → (m, k)
-    sims = cand_mat.dot(anchor_mat.T).toarray()       # dense is fine at this scale
+    sims = cand_mat.dot(anchor_mat.T)
+    sims = np.array(sims)
 
     # Weighted sum over anchors → (m,)
     anchor_soft = sims.dot(weights)
@@ -302,7 +303,8 @@ def mmr_rerank(
                 # Compute max similarity to already selected items
                 sims = full_matrix_norm[global_idx].dot(
                     full_matrix_norm[selected_global].T
-                ).toarray().ravel()
+                )
+                sims = np.array(sims).ravel()
                 max_sim = float(sims.max()) if sims.size > 0 else 0.0
 
                 mmr_score = lambda_mmr * relevance - (1.0 - lambda_mmr) * max_sim
@@ -331,7 +333,7 @@ def recommend_cbf_user_plus_anchors_mmr(
     owned_mapped: pd.DataFrame,
     user_vec: np.ndarray,
     top_n: int = 20,
-    candidate_pool_size: int = 500,
+    candidate_pool_size: int = 100,
     min_playtime: int = 60,
     beta: float = 0.3,
     lambda_mmr: float = 0.7,
