@@ -15,3 +15,4 @@ tqdm
 
 h5py
 threadpoolctl
+lxml
