@@ -2,58 +2,481 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Ludex — Sign in with Steam</title>
+<title>Ludex | Sign in with Steam</title>
 
 <style>
+    :root {
+        --steam-navy: #171a21;
+        --steam-deep: #1b2838;
+        --steam-panel: #101822;
+        --steam-panel-soft: rgba(27, 40, 56, 0.92);
+        --steam-blue: #66c0f4;
+        --steam-green-top: #75b022;
+        --steam-green-bottom: #588a1b;
+        --steam-text: #c7d5e0;
+        --steam-muted: #8f98a0;
+        --steam-shadow: 0 24px 60px rgba(0, 0, 0, 0.48);
+        --steam-font: "Trebuchet MS", "Segoe UI", Tahoma, sans-serif;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html, body {
+        min-height: 100%;
+    }
+
     body {
-        margin:0; font-family:Arial, Helvetica, sans-serif;
-        background:radial-gradient(circle at top left,#1b2838,#0b1622 70%);
-        color:#c7d5e0;
+        margin: 0;
+        font-family: var(--steam-font);
+        line-height: 1.5;
+        color: var(--steam-text);
+        background:
+            radial-gradient(circle at 18% 18%, rgba(102, 192, 244, 0.18), transparent 30%),
+            radial-gradient(circle at 82% 14%, rgba(117, 176, 34, 0.12), transparent 26%),
+            linear-gradient(160deg, #0f1823 0%, #171a21 22%, #1b2838 58%, #0f1823 100%);
+        overflow-x: hidden;
+        overflow-y: auto;
+        position: relative;
     }
-    .navbar {
-        background:#171a21; padding:18px 30px;
-        box-shadow:0 3px 6px rgba(0,0,0,0.5);
-    }
-    .title { font-size:32px; font-weight:bold; }
 
-    .container {
-        height:calc(100vh - 72px);
-        display:flex; align-items:center; justify-content:center;
+    body::before,
+    body::after {
+        content: "";
+        position: fixed;
+        inset: -20%;
+        pointer-events: none;
+        z-index: 0;
     }
-    .login-box {
-        width:420px; text-align:center; padding:36px;
-        background:rgba(255,255,255,0.03);
-        border-radius:8px; border:1px solid rgba(255,255,255,0.08);
-        box-shadow:0 0 25px rgba(0,0,0,0.4);
-    }
-    h2 { margin-bottom:20px; font-size:26px; color:#fff; }
 
-    .steam-btn {
-        display:inline-block; padding:14px 28px;
-        background:#5fa32d; color:#fff; border-radius:6px;
-        font-size:18px; font-weight:bold; text-decoration:none;
-        box-shadow:0 0 10px rgba(95,163,45,0.6);
-        transition:.18s;
+    body::before {
+        background:
+            radial-gradient(circle at 25% 35%, rgba(102, 192, 244, 0.18), transparent 28%),
+            radial-gradient(circle at 70% 55%, rgba(117, 176, 34, 0.1), transparent 24%);
+        animation: ambientPulse 11s ease-in-out infinite alternate;
     }
-    .steam-btn:hover {
-        background:#72c23a; transform:scale(1.04);
-        box-shadow:0 0 18px rgba(114,194,58,0.8);
+
+    body::after {
+        background:
+            linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+            linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+        background-size: 70px 70px;
+        opacity: 0.12;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent);
+    }
+
+    @keyframes ambientPulse {
+        0% {
+            transform: scale(1) translate3d(0, 0, 0);
+            opacity: 0.72;
+        }
+        100% {
+            transform: scale(1.08) translate3d(1.5%, -1.5%, 0);
+            opacity: 1;
+        }
+    }
+
+    .steam-header {
+        position: relative;
+        z-index: 2;
+        min-height: 88px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 34px;
+        background: linear-gradient(180deg, rgba(23, 26, 33, 0.98), rgba(23, 26, 33, 0.9));
+        border-bottom: 1px solid rgba(102, 192, 244, 0.14);
+        box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
+    }
+
+    .header-brand {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .header-title {
+        margin: 0;
+        font-size: 32px;
+        letter-spacing: 0.12em;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #ffffff;
+    }
+
+    .header-subtitle {
+        margin-top: 4px;
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--steam-muted);
+    }
+
+    .topbar-status {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-end;
+        text-align: right;
+        font-size: 11px;
+        line-height: 1.4;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--steam-muted);
+    }
+
+    .topbar-status span {
+        display: block;
+        margin-top: 6px;
+        color: var(--steam-blue);
+        letter-spacing: 0.08em;
+        font-size: 12px;
+    }
+
+    .login-stage {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+    }
+
+    .dialog-shell {
+        width: min(100%, 460px);
+        background:
+            linear-gradient(180deg, rgba(43, 55, 71, 0.96), rgba(16, 24, 34, 0.96)),
+            var(--steam-panel-soft);
+        border: 1px solid rgba(102, 192, 244, 0.16);
+        border-radius: 14px;
+        box-shadow: var(--steam-shadow);
+        overflow: hidden;
+    }
+
+    .dialog-titlebar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        background: linear-gradient(180deg, rgba(23, 26, 33, 0.96), rgba(27, 40, 56, 0.9));
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .dialog-titlebar strong {
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #ffffff;
+    }
+
+    .window-controls {
+        display: flex;
+        gap: 8px;
+    }
+
+    .window-controls span {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.22);
+    }
+
+    .dialog-body {
+        padding: 34px 34px 30px;
+    }
+
+    .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        margin-bottom: 18px;
+        background: rgba(102, 192, 244, 0.08);
+        border: 1px solid rgba(102, 192, 244, 0.16);
+        border-radius: 999px;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--steam-blue);
+    }
+
+    .eyebrow::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--steam-blue);
+        box-shadow: 0 0 12px rgba(102, 192, 244, 0.75);
+    }
+
+    h2 {
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: 0.04em;
+        line-height: 1.1;
+        color: #ffffff;
+    }
+
+    .dialog-copy {
+        margin: 14px 0 0;
+        font-size: 14px;
+        line-height: 1.65;
+        color: #a7bacc;
+    }
+
+    .feature-strip {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin: 28px 0 26px;
+    }
+
+    .feature {
+        padding: 14px 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        text-align: center;
+    }
+
+    .feature strong {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--steam-blue);
+    }
+
+    .feature span {
+        display: block;
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--steam-text);
+    }
+
+    .steam-signin {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 54px;
+        padding: 14px 24px;
+        border-radius: 4px;
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 15px;
+        font-weight: 700;
+        color: #f7fff0;
+        background: linear-gradient(180deg, var(--steam-green-top), var(--steam-green-bottom));
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 14px 28px rgba(54, 97, 10, 0.4);
+        transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+    }
+
+    .steam-signin:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.05);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.24),
+            0 18px 32px rgba(84, 138, 27, 0.46);
+    }
+
+    .steam-signin:active {
+        transform: translateY(0);
+    }
+
+    .trust-copy {
+        margin: 16px 0 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--steam-muted);
+    }
+
+    .dialog-footer {
+        margin-top: 28px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--steam-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+    }
+
+    .dialog-footer strong {
+        display: block;
+        margin-top: 7px;
+        color: var(--steam-text);
+        letter-spacing: 0;
+        text-transform: none;
+        font-size: 13px;
+    }
+
+    #steamLoader {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        background: rgba(8, 14, 22, 0.88);
+        backdrop-filter: blur(5px);
+        z-index: 10;
+    }
+
+    .steam-loading-ring {
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        border: 5px solid rgba(255, 255, 255, 0.08);
+        border-top-color: var(--steam-blue);
+        border-right-color: rgba(102, 192, 244, 0.45);
+        box-shadow:
+            0 0 0 1px rgba(102, 192, 244, 0.15),
+            0 0 28px rgba(102, 192, 244, 0.26);
+        animation: steamSpin 900ms linear infinite;
+    }
+
+    .steam-loading-text {
+        margin-top: 20px;
+        font-size: 18px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: #e4f3fb;
+        animation: textGlow 1.5s ease-in-out infinite;
+    }
+
+    @keyframes steamSpin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes textGlow {
+        0%, 100% {
+            opacity: 0.68;
+            text-shadow: 0 0 8px rgba(102, 192, 244, 0.18);
+        }
+        50% {
+            opacity: 1;
+            text-shadow: 0 0 22px rgba(102, 192, 244, 0.55);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .steam-header {
+            height: auto;
+            padding: 18px 20px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .topbar-status {
+            text-align: left;
+        }
+
+        .dialog-body {
+            padding: 28px 22px 24px;
+        }
+
+        h2 {
+            font-size: 24px;
+        }
+
+        .feature-strip {
+            grid-template-columns: 1fr;
+        }
+
+        .dialog-footer {
+            flex-direction: column;
+        }
     }
 </style>
 </head>
 
 <body>
-    <div class="navbar"><div class="title">Ludex</div></div>
+    <div class="steam-header">
+        <div class="header-brand">
+            <div class="header-title">LUDEX</div>
+            <div class="header-subtitle">HYBRID RECOMMENDATION SYSTEM</div>
+        </div>
 
-    <div class="container">
-        <div class="login-box">
-            <h2>Sign in with Steam</h2>
-            <a class="steam-btn" href="/login">SIGN IN WITH STEAM</a>
-
-            <p style="margin-top:18px; color:#95a5b0; font-size:14px;">
-                We will only read your public Steam profile (username & avatar).
-            </p>
+        <div class="topbar-status">
+            Secure sign-in gateway
+            <span>Powered by Steam OpenID</span>
         </div>
     </div>
+
+    <main class="login-stage">
+        <section class="dialog-shell">
+            <div class="dialog-titlebar">
+                <strong>Steam Login</strong>
+                <div class="window-controls" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+
+            <div class="dialog-body">
+                <div class="eyebrow">Official-style access</div>
+                <h2>Sign in with your Steam account</h2>
+                <p class="dialog-copy">
+                    Enter Ludex through the familiar Steam-inspired interface and unlock personalized game recommendations built from your public profile.
+                </p>
+
+                <div class="feature-strip">
+                    <div class="feature">
+                        <strong>Fast</strong>
+                        <span>One-click sign in</span>
+                    </div>
+                    <div class="feature">
+                        <strong>Safe</strong>
+                        <span>Public profile only</span>
+                    </div>
+                    <div class="feature">
+                        <strong>Smart</strong>
+                        <span>Curated picks</span>
+                    </div>
+                </div>
+
+                <a class="steam-signin" href="/login" onclick="showSteamLoader()">Sign In</a>
+
+                <p class="trust-copy">
+                    We will only read your public Steam profile (username &amp; avatar).
+                </p>
+
+                <div class="dialog-footer">
+                    <div>
+                        Account Access
+                        <strong>Steam OpenID Authentication</strong>
+                    </div>
+                    <div>
+                        Experience
+                        <strong>Steam-inspired discovery flow</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="steamLoader">
+        <div class="steam-loading-ring"></div>
+        <div class="steam-loading-text">Connecting...</div>
+    </div>
+
+<script>
+    function showSteamLoader() {
+        document.getElementById("steamLoader").style.display = "flex";
+    }
+</script>
 </body>
 </html>
