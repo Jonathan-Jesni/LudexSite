@@ -5,107 +5,530 @@
 <title>Ludex Dashboard</title>
 
 <style>
+    :root {
+        --steam-navy: #171a21;
+        --steam-deep: #1b2838;
+        --steam-deeper: #0f141b;
+        --steam-panel: rgba(24, 34, 47, 0.96);
+        --steam-panel-soft: rgba(32, 46, 62, 0.92);
+        --steam-blue: #66c0f4;
+        --steam-green-top: #75b022;
+        --steam-green-bottom: #588a1b;
+        --steam-text: #c7d5e0;
+        --steam-text-bright: #f5fbff;
+        --steam-muted: #8f98a0;
+        --steam-font: "Trebuchet MS", "Segoe UI", Tahoma, sans-serif;
+        --steam-shadow: 0 26px 70px rgba(0, 0, 0, 0.46);
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
     body {
-        margin:0; font-family:Arial, Helvetica, sans-serif;
-        background:radial-gradient(circle at top left,#1b2838,#0b1622 70%);
-        color:#c7d5e0;
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--steam-font);
+        line-height: 1.5;
+        color: var(--steam-text);
+        background:
+            radial-gradient(circle at 15% 20%, rgba(102, 192, 244, 0.12), transparent 28%),
+            radial-gradient(circle at 82% 8%, rgba(117, 176, 34, 0.08), transparent 22%),
+            linear-gradient(180deg, #10161f 0%, #171a21 18%, #1b2838 48%, #111822 100%);
+        position: relative;
     }
+
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+            linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+            linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 80px 80px;
+        opacity: 0.16;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), transparent);
+    }
+
     .steam-header {
-        background:#171a21; height:90px; display:flex; align-items:center;
-        justify-content:space-between; padding:0 35px;
-        box-shadow:0 4px 8px rgba(0,0,0,0.45); position:relative;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        min-height: 88px;
+        padding: 16px 34px;
+        background: linear-gradient(180deg, rgba(23, 26, 33, 0.98), rgba(23, 26, 33, 0.94));
+        border-bottom: 1px solid rgba(102, 192, 244, 0.14);
+        box-shadow: 0 10px 32px rgba(0, 0, 0, 0.35);
     }
-    .header-title { font-size:32px; font-weight:bold; }
-    .profile-area { display:flex; align-items:center; gap:12px; cursor:pointer; }
-    .avatar,.avatar-large {
-        background-size:cover; background-position:center; border-radius:6px;
+
+    .header-brand {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
-    .avatar { width:42px; height:42px; }
-    .avatar-large { width:72px; height:72px; margin:0 auto 10px; }
-    .player-name { font-size:18px; font-weight:bold; }
+
+    .header-title {
+        margin: 0;
+        font-size: 32px;
+        line-height: 1;
+        color: #ffffff;
+        letter-spacing: 0.12em;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    .header-subtitle {
+        margin-top: 4px;
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--steam-muted);
+    }
+
+    .profile-area {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: linear-gradient(180deg, rgba(37, 52, 70, 0.78), rgba(19, 27, 37, 0.9));
+        cursor: pointer;
+        transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .profile-area:hover {
+        transform: translateY(-1px);
+        border-color: rgba(102, 192, 244, 0.24);
+        box-shadow: 0 14px 24px rgba(0, 0, 0, 0.28);
+    }
+
+    .avatar,
+    .avatar-large {
+        background-size: cover;
+        background-position: center;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+    }
+
+    .avatar {
+        width: 46px;
+        height: 46px;
+    }
+
+    .avatar-large {
+        width: 86px;
+        height: 86px;
+        margin: 0 auto 14px;
+    }
+
+    .profile-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .profile-label {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--steam-muted);
+    }
+
+    .player-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--steam-text-bright);
+    }
 
     .dropdown {
-        position:absolute; top:90px; right:35px; width:240px; padding:12px;
-        background:#1b2838; border:1px solid rgba(255,255,255,0.08);
-        border-radius:6px; box-shadow:0 0 10px rgba(0,0,0,0.5);
-        display:none; flex-direction:column; animation:fadeIn .15s;
+        position: absolute;
+        top: 100%;
+        right: 34px;
+        width: 280px;
+        margin-top: 10px;
+        padding: 18px;
+        display: none;
+        flex-direction: column;
+        background: linear-gradient(180deg, rgba(35, 50, 68, 0.98), rgba(18, 27, 37, 0.98));
+        border-radius: 12px;
+        border: 1px solid rgba(102, 192, 244, 0.14);
+        box-shadow: 0 24px 50px rgba(0, 0, 0, 0.44);
+        animation: dropdownFade 180ms ease;
     }
-    @keyframes fadeIn { from{opacity:0; transform:translateY(-6px);} }
-    .dropdown .name { text-align:center; font-weight:bold; margin-bottom:8px; }
 
-    .btn-green {
-        display:inline-block; margin-top:28px; padding:14px 30px;
-        background:#5fa32d; color:#fff; font-weight:bold; text-decoration:none;
-        border-radius:8px; font-size:20px;
-        box-shadow:0 0 10px rgba(95,163,45,.6); transition:.18s;
+    @keyframes dropdownFade {
+        from {
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
-    .btn-green:hover { background:#72c23a; transform:scale(1.04); }
+
+    .dropdown .name {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffffff;
+    }
+
+    .dropdown .meta-line {
+        margin-top: 6px;
+        text-align: center;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--steam-muted);
+    }
 
     .logout-btn {
-        padding:10px; border-radius:6px; background:#5fa32d;
-        color:white; text-align:center; font-weight:bold; text-decoration:none;
-        transition:.15s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 18px;
+        min-height: 44px;
+        padding: 10px 16px;
+        border-radius: 4px;
+        background: linear-gradient(180deg, var(--steam-green-top), var(--steam-green-bottom));
+        color: #f7fff0;
+        text-align: center;
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 15px;
+        font-weight: 700;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 14px 26px rgba(54, 97, 10, 0.32);
+        transition: transform 180ms ease, filter 180ms ease;
     }
-    .logout-btn:hover { background:#72c23a; transform:scale(1.02); }
 
-    .content { padding:40px; text-align:center; }
-    .box {
-        margin:100px auto 0; width:640px; padding:50px;
-        border-radius:10px; background:rgba(255,255,255,0.03);
-        border:1px solid rgba(255,255,255,0.08);
-        box-shadow:0 0 30px rgba(0,0,0,0.45);
+    .logout-btn:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.05);
     }
+
+    .content {
+        padding: 42px 34px 64px;
+    }
+
+    .dashboard-shell {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+    }
+
+    .library-hero {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+        gap: 28px;
+        padding: 34px;
+        border-radius: 20px;
+        background:
+            linear-gradient(120deg, rgba(44, 61, 82, 0.96), rgba(23, 35, 49, 0.98) 55%, rgba(17, 24, 33, 1)),
+            var(--steam-panel);
+        border: 1px solid rgba(102, 192, 244, 0.14);
+        box-shadow: var(--steam-shadow);
+    }
+
+    .library-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 78% 18%, rgba(102, 192, 244, 0.16), transparent 24%),
+            radial-gradient(circle at 18% 80%, rgba(117, 176, 34, 0.12), transparent 28%);
+        pointer-events: none;
+    }
+
+    .hero-main,
+    .hero-side {
+        position: relative;
+        z-index: 1;
+    }
+
+    .library-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(102, 192, 244, 0.08);
+        border: 1px solid rgba(102, 192, 244, 0.16);
+        color: var(--steam-blue);
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .library-tag::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--steam-blue);
+        box-shadow: 0 0 12px rgba(102, 192, 244, 0.75);
+    }
+
+    .hero-main h2 {
+        margin: 18px 0 10px;
+        font-size: 40px;
+        line-height: 1.08;
+        color: #ffffff;
+    }
+
+    .hero-main p {
+        margin: 0;
+        max-width: 640px;
+        font-size: 14px;
+        line-height: 1.65;
+        color: #a7bacc;
+    }
+
+    .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 26px;
+    }
+
+    .stat-card {
+        padding: 18px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .stat-card strong {
+        display: block;
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--steam-blue);
+    }
+
+    .stat-card span {
+        display: block;
+        margin-top: 8px;
+        font-size: 14px;
+        color: var(--steam-text-bright);
+        word-break: break-word;
+    }
+
+    .hero-side {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 100%;
+        padding: 22px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(20, 29, 40, 0.92), rgba(13, 20, 29, 0.98));
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .side-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .side-copy small {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--steam-muted);
+    }
+
+    .side-copy h3 {
+        margin: 8px 0 0;
+        font-size: 20px;
+        color: #ffffff;
+    }
+
+    .side-panel {
+        padding: 16px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .side-panel span {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--steam-muted);
+    }
+
     .steamid-box {
-        margin:auto; width:75%; padding:16px; font-size:20px;
-        border-radius:6px; background:rgba(255,255,255,0.05);
-        border:1px solid rgba(255,255,255,0.08);
+        margin-top: 10px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--steam-text-bright);
+        word-break: break-word;
     }
 
-    /* ================================
-       STEAM STYLE LOADING OVERLAY
-       ================================ */
+    .cta-copy {
+        margin: 20px 0 0;
+        font-size: 13px;
+        line-height: 1.65;
+        color: #9eb0bf;
+    }
+
+    .btn-green {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 24px;
+        min-height: 56px;
+        width: 100%;
+        padding: 14px 20px;
+        border-radius: 4px;
+        background: linear-gradient(180deg, var(--steam-green-top), var(--steam-green-bottom));
+        color: #f7fff0;
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 15px;
+        font-weight: 700;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 18px 34px rgba(57, 93, 14, 0.38);
+        transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
+    }
+
+    .btn-green::after {
+        content: ">";
+        font-size: 18px;
+        line-height: 1;
+    }
+
+    .btn-green:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.06);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.24),
+            0 22px 40px rgba(57, 93, 14, 0.46);
+    }
+
+    .footer-note {
+        margin-top: 20px;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--steam-muted);
+    }
+
     #steamLoader {
-        display:none;
-        position:fixed;
-        top:0; left:0;
-        width:100%; height:100%;
-        background:rgba(10, 20, 35, 0.85);
-        backdrop-filter:blur(3px);
-        z-index:9999;
-        text-align:center;
-        justify-content:center;
-        align-items:center;
-        flex-direction:column;
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        background: rgba(8, 14, 22, 0.88);
+        backdrop-filter: blur(5px);
     }
 
     .steam-loading-ring {
-        width:80px;
-        height:80px;
-        border:6px solid #1b2838;
-        border-top:6px solid #66c0f4;
-        border-radius:50%;
-        animation:steam-spin 0.9s linear infinite;
-        box-shadow:0 0 12px rgba(102,192,244,0.4);
-    }
-
-    @keyframes steam-spin {
-        0% { transform:rotate(0deg); }
-        100% { transform:rotate(360deg); }
+        width: 94px;
+        height: 94px;
+        border-radius: 50%;
+        border: 5px solid rgba(255, 255, 255, 0.08);
+        border-top-color: var(--steam-blue);
+        border-right-color: rgba(102, 192, 244, 0.42);
+        box-shadow:
+            0 0 0 1px rgba(102, 192, 244, 0.15),
+            0 0 28px rgba(102, 192, 244, 0.28);
+        animation: steamSpin 900ms linear infinite;
     }
 
     .steam-loading-text {
-        margin-top:18px;
-        font-size:24px;
-        letter-spacing:3px;
-        color:#c7d5e0;
-        font-weight:bold;
-        animation:steam-text-glow 1.4s ease-in-out infinite;
+        margin-top: 20px;
+        font-size: 18px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: #e4f3fb;
+        animation: textGlow 1.5s ease-in-out infinite;
     }
 
-    @keyframes steam-text-glow {
-        0% { opacity:0.5; text-shadow:0 0 4px #66c0f4; }
-        50% { opacity:1; text-shadow:0 0 14px #66c0f4; }
-        100% { opacity:0.5; text-shadow:0 0 4px #66c0f4; }
+    @keyframes steamSpin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes textGlow {
+        0%, 100% {
+            opacity: 0.7;
+            text-shadow: 0 0 8px rgba(102, 192, 244, 0.18);
+        }
+        50% {
+            opacity: 1;
+            text-shadow: 0 0 22px rgba(102, 192, 244, 0.55);
+        }
+    }
+
+    @media (max-width: 960px) {
+        .steam-header {
+            padding: 16px 20px;
+            flex-wrap: wrap;
+            height: auto;
+            min-height: 84px;
+        }
+
+        .dropdown {
+            right: 20px;
+        }
+
+        .content {
+            padding: 28px 20px 44px;
+        }
+
+        .library-hero {
+            grid-template-columns: 1fr;
+            padding: 24px;
+        }
+
+        .hero-main h2 {
+            font-size: 26px;
+        }
+
+        .hero-stats {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .header-title {
+            font-size: 26px;
+        }
+
+        .profile-area {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .dropdown {
+            left: 20px;
+            right: 20px;
+            width: auto;
+        }
     }
 </style>
 </head>
@@ -113,39 +536,85 @@
 <body>
 
 <div class="steam-header">
-    <div class="header-title">Ludex</div>
+    <div class="header-brand">
+        <div class="header-title">LUDEX</div>
+        <div class="header-subtitle">HYBRID RECOMMENDATION SYSTEM</div>
+    </div>
 
     <div id="profileBtn" class="profile-area">
         <div class="avatar" style="background-image:url('{{ avatar or "/static/default-avatar.png" }}')"></div>
-        <div class="player-name">{{ username or steamid }}</div>
+        <div class="profile-copy">
+            <div class="profile-label">Signed in profile</div>
+            <div class="player-name">{{ username or steamid }}</div>
+        </div>
     </div>
 
     <div id="dropdown" class="dropdown">
         <div class="avatar-large" style="background-image:url('{{ avatar or "/static/default-avatar.png" }}')"></div>
         <div class="name">{{ username or steamid }}</div>
+        <div class="meta-line">Steam session active</div>
         <a href="/logout" class="logout-btn">Logout</a>
     </div>
 </div>
 
 <div class="content">
-    <div class="box">
-        <h2>Welcome to Your Dashboard</h2>
-        <div class="steamid-box">Steam ID: {{ steamid }}</div>
+    <div class="dashboard-shell">
+        <section class="library-hero">
+            <div class="hero-main">
+                <div class="library-tag">Personalized Steam-style hub</div>
+                <h2>Welcome to Your Dashboard</h2>
+                <p>
+                    Your recommendation space is ready. Ludex uses your Steam identity to frame a more authentic, store-like discovery experience before generating your next batch of game suggestions.
+                </p>
 
-        <p style="font-size:18px;color:#b8c7d1;margin-top:20px;">
-            You're now signed in using your Steam account.
-        </p>
+                <div class="hero-stats">
+                    <div class="stat-card">
+                        <strong>Profile</strong>
+                        <span>{{ username or steamid }}</span>
+                    </div>
+                    <div class="stat-card">
+                        <strong>Platform</strong>
+                        <span>Steam Connected</span>
+                    </div>
+                    <div class="stat-card">
+                        <strong>Mode</strong>
+                        <span>Recommendation Ready</span>
+                    </div>
+                </div>
+            </div>
 
-        <a href="/recommend" class="btn-green" onclick="showSteamLoader()">Recommend Games</a>
+            <div class="hero-side">
+                <div>
+                    <div class="side-header">
+                        <div class="avatar" style="width:64px;height:64px;background-image:url('{{ avatar or "/static/default-avatar.png" }}')"></div>
+                        <div class="side-copy">
+                            <small>Library Header</small>
+                            <h3>{{ username or steamid }}</h3>
+                        </div>
+                    </div>
+
+                    <div class="side-panel">
+                        <span>Steam ID</span>
+                        <div class="steamid-box">{{ steamid }}</div>
+                    </div>
+
+                    <p class="cta-copy">
+                        Launch the recommendation flow to view game matches in a Steam Store-inspired browsing interface.
+                    </p>
+                </div>
+
+                <div>
+                    <a href="/recommend" class="btn-green" onclick="showSteamLoader()">Recommend Games</a>
+                    <div class="footer-note">Discovery engine standing by</div>
+                </div>
+            </div>
+        </section>
     </div>
 </div>
 
-<!-- ==========================
-     STEAM LOADING OVERLAY
-     ========================== -->
 <div id="steamLoader">
     <div class="steam-loading-ring"></div>
-    <div class="steam-loading-text">LOADING...</div>
+    <div class="steam-loading-text">Loading...</div>
 </div>
 
 <script>
@@ -158,7 +627,6 @@
         if(!btn.contains(e.target) && !drop.contains(e.target)) drop.style.display="none";
     });
 
-    // Show Steam loader on click
     function showSteamLoader() {
         document.getElementById("steamLoader").style.display = "flex";
     }

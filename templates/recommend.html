@@ -1,228 +1,862 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>Your Recommendations – Ludex</title>
+    <meta charset="UTF-8">
+    <title>Your Recommendations - Ludex</title>
 
-<style>
-    body {
-        margin:0; font-family:Arial, Helvetica, sans-serif;
-        background:radial-gradient(circle at top left,#1b2838,#0b1622 70%);
-        color:#c7d5e0;
-    }
-
-    /* HEADER + PROFILE */
-    .steam-header {
-        background:#171a21; height:90px; display:flex;
-        align-items:center; justify-content:space-between;
-        padding:0 35px; box-shadow:0 4px 8px rgba(0,0,0,0.45);
-        position:relative;
-    }
-    .header-title { font-size:32px; font-weight:bold; }
-    .profile-area { display:flex; align-items:center; gap:12px; cursor:pointer; }
-    .avatar,.avatar-large {
-        background-size:cover; background-position:center; border-radius:6px;
-    }
-    .avatar { width:42px; height:42px; border-radius:4px; }
-    .avatar-large { width:72px; height:72px; margin:0 auto 10px; }
-    .player-name,.name { font-size:18px; font-weight:bold; }
-
-    /* DROPDOWN */
-    .dropdown {
-        position:absolute; top:90px; right:35px;
-        width:240px; padding:12px; background:#1b2838;
-        border-radius:6px; display:none; flex-direction:column;
-        border:1px solid rgba(255,255,255,0.08);
-        box-shadow:0 0 10px rgba(0,0,0,0.5);
-        animation:fade .15s;
-    }
-    @keyframes fade { from{opacity:0;transform:translateY(-6px);} }
-
-    .logout-btn {
-        display:block; margin-top:6px; padding:10px;
-        background:#5fa32d; color:#fff; border-radius:6px;
-        text-decoration:none; font-weight:bold; text-align:center;
-        transition:.15s;
-    }
-    .logout-btn:hover { background:#72c23a; transform:scale(1.02); }
-
-    /* CONTENT */
-    .content { display:flex; justify-content:center; padding:50px 0; }
-    .box {
-        width:900px; padding:40px; text-align:center;
-        background:rgba(255,255,255,0.03);
-        border:1px solid rgba(255,255,255,0.08);
-        border-radius:12px; 
-        box-shadow:0 0 30px rgba(0,0,0,0.45);
-    }
-
-    /* FIX: GRID NOW SHOWS ALL CARDS */
-    .grid {
-        display:grid;
-        gap:20px;
-        grid-template-columns:1fr;
-        width:100%;
-    }
-    @media(min-width:980px){
-        .grid {
-            grid-template-columns:repeat(2, 1fr);
+    <style>
+        :root {
+            --steam-navy: #171a21;
+            --steam-deep: #1b2838;
+            --steam-deeper: #10161f;
+            --steam-card: rgba(30, 43, 58, 0.96);
+            --steam-card-soft: rgba(21, 30, 41, 0.98);
+            --steam-blue: #66c0f4;
+            --steam-green-top: #75b022;
+            --steam-green-bottom: #588a1b;
+            --steam-text: #c7d5e0;
+            --steam-text-bright: #f5fbff;
+            --steam-muted: #8f98a0;
+            --steam-font: "Trebuchet MS", "Segoe UI", Tahoma, sans-serif;
+            --steam-shadow: 0 24px 60px rgba(0, 0, 0, 0.48);
         }
-    }
 
-    .card {
-        display:flex; gap:16px; padding:14px; cursor:pointer;
-        background:rgba(255,255,255,0.03);
-        border-radius:8px; border:1px solid rgba(255,255,255,0.06);
-        transition:.15s;
-    }
-    .card:hover{ transform:translateY(-6px); box-shadow:0 12px 30px rgba(0,0,0,0.6); }
+        * {
+            box-sizing: border-box;
+        }
 
-    .thumb {
-        width:160px; height:90px; flex:0 0 160px;
-        border-radius:6px; overflow:hidden;
-    }
-    .thumb img { width:100%; height:100%; object-fit:cover; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: var(--steam-font);
+            line-height: 1.5;
+            color: var(--steam-text);
+            background:
+                radial-gradient(circle at 14% 18%, rgba(102, 192, 244, 0.1), transparent 28%),
+                radial-gradient(circle at 82% 12%, rgba(117, 176, 34, 0.07), transparent 24%),
+                linear-gradient(180deg, #0e141c 0%, #171a21 18%, #1b2838 48%, #10161f 100%);
+            position: relative;
+        }
 
-    .meta { flex:1; text-align:left; }
-    .meta h3 { margin:0; font-size:18px; color:#fff; }
-    .meta p { margin:6px 0 0; font-size:13px; color:#b8c7d1; }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+                linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+            background-size: 82px 82px;
+            opacity: 0.16;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent);
+        }
 
-    /* MODAL */
-    .modal-backdrop {
-        position:fixed; inset:0; display:none;
-        align-items:center; justify-content:center;
-        backdrop-filter:blur(6px); background:rgba(2,6,10,0.6);
-        z-index:2000;
-    }
-    .modal {
-        width:880px; max-width:95%; padding:18px;
-        background:#071018; border-radius:10px;
-        color:#dfeff7; box-shadow:0 30px 80px rgba(0,0,0,0.7);
-    }
-    .modal-top { display:flex; gap:18px; }
-    .modal-img { width:360px; flex:0 0 360px; border-radius:8px; overflow:hidden; }
-    .modal-img img { width:100%; }
-    .modal-info { flex:1; text-align:left; }
-    .close-btn {
-        float:right; background:none; border:0;
-        font-size:20px; color:#cfdfe9; cursor:pointer;
-    }
-    .desc {
-        margin-top:12px; font-size:14px; line-height:1.4;
-        max-height:240px; overflow:auto; padding-right:8px;
-        color:#d5e6f0;
-    }
-    .btn-steam {
-        display:inline-block; margin-top:12px; padding:10px 14px;
-        background:#5fa32d; color:white; border-radius:8px;
-        font-weight:700; text-decoration:none;
-    }
-</style>
+        .steam-header {
+            position: sticky;
+            top: 0;
+            z-index: 6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            min-height: 88px;
+            padding: 16px 34px;
+            background: linear-gradient(180deg, rgba(23, 26, 33, 0.98), rgba(23, 26, 33, 0.94));
+            border-bottom: 1px solid rgba(102, 192, 244, 0.14);
+            box-shadow: 0 10px 32px rgba(0, 0, 0, 0.34);
+        }
+
+        .header-brand {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .header-title {
+            margin: 0;
+            font-size: 32px;
+            line-height: 1;
+            color: #ffffff;
+            letter-spacing: 0.12em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .header-subtitle {
+            margin-top: 4px;
+            font-size: 12px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--steam-muted);
+        }
+
+        .profile-area {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: linear-gradient(180deg, rgba(37, 52, 70, 0.78), rgba(19, 27, 37, 0.9));
+            cursor: pointer;
+            transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+        }
+
+        .profile-area:hover {
+            transform: translateY(-1px);
+            border-color: rgba(102, 192, 244, 0.24);
+            box-shadow: 0 14px 24px rgba(0, 0, 0, 0.28);
+        }
+
+        .avatar,
+        .avatar-large {
+            background-size: cover;
+            background-position: center;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+        }
+
+        .avatar {
+            width: 46px;
+            height: 46px;
+        }
+
+        .avatar-large {
+            width: 86px;
+            height: 86px;
+            margin: 0 auto 14px;
+        }
+
+        .player-name,
+        .name {
+            font-size: 18px;
+        font-weight: 700;
+            color: var(--steam-text-bright);
+        }
+
+        .profile-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .profile-copy small {
+            font-size: 11px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--steam-muted);
+        }
+
+        .dropdown {
+            position: absolute;
+            top: 100%;
+            right: 34px;
+            width: 280px;
+            margin-top: 10px;
+            padding: 18px;
+            display: none;
+            flex-direction: column;
+            background: linear-gradient(180deg, rgba(35, 50, 68, 0.98), rgba(18, 27, 37, 0.98));
+            border-radius: 12px;
+            border: 1px solid rgba(102, 192, 244, 0.14);
+            box-shadow: 0 24px 50px rgba(0, 0, 0, 0.44);
+            animation: dropdownFade 180ms ease;
+        }
+
+        @keyframes dropdownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown .meta-line {
+            margin-top: 6px;
+            text-align: center;
+            font-size: 12px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--steam-muted);
+        }
+
+        .logout-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 18px;
+            min-height: 44px;
+            padding: 10px 16px;
+            border-radius: 4px;
+            background: linear-gradient(180deg, var(--steam-green-top), var(--steam-green-bottom));
+            color: #f7fff0;
+            text-align: center;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-size: 15px;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 14px 26px rgba(54, 97, 10, 0.32);
+            transition: transform 180ms ease, filter 180ms ease;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.05);
+        }
+
+        .content {
+            padding: 34px;
+        }
+
+        .store-shell {
+            width: min(1200px, 100%);
+            margin: 0 auto;
+        }
+
+        .store-hero {
+            position: relative;
+            overflow: hidden;
+            padding: 30px 32px;
+            border-radius: 20px;
+            background:
+                linear-gradient(135deg, rgba(44, 61, 82, 0.96), rgba(24, 36, 49, 0.98) 58%, rgba(14, 21, 30, 1)),
+                rgba(25, 35, 48, 0.98);
+            border: 1px solid rgba(102, 192, 244, 0.14);
+            box-shadow: var(--steam-shadow);
+            margin-bottom: 28px;
+        }
+
+        .store-hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 80% 20%, rgba(102, 192, 244, 0.16), transparent 24%),
+                radial-gradient(circle at 18% 78%, rgba(117, 176, 34, 0.12), transparent 26%);
+            pointer-events: none;
+        }
+
+        .store-hero>* {
+            position: relative;
+            z-index: 1;
+        }
+
+        .store-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(102, 192, 244, 0.08);
+            border: 1px solid rgba(102, 192, 244, 0.16);
+            color: var(--steam-blue);
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        .store-tag::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--steam-blue);
+            box-shadow: 0 0 12px rgba(102, 192, 244, 0.75);
+        }
+
+        .store-hero h2 {
+            margin: 18px 0 10px;
+            font-size: 40px;
+            line-height: 1.08;
+            color: #ffffff;
+        }
+
+        .store-hero p {
+            margin: 0;
+            max-width: 760px;
+            font-size: 14px;
+            line-height: 1.65;
+            color: #a7bacc;
+        }
+
+        .store-highlight {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 22px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--steam-text);
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .store-highlight strong {
+            color: #ffffff;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 22px;
+            width: 100%;
+        }
+
+        .card {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100%;
+            cursor: pointer;
+            border-radius: 16px;
+            background:
+                linear-gradient(180deg, rgba(34, 48, 64, 0.98), rgba(16, 24, 34, 0.98)),
+                var(--steam-card);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 18px 36px rgba(0, 0, 0, 0.32);
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+        }
+
+        .card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(102, 192, 244, 0.04), transparent 45%);
+            opacity: 0;
+            transition: opacity 180ms ease;
+            pointer-events: none;
+        }
+
+        .card:hover {
+            transform: scale(1.02) translateY(-4px);
+            border-color: rgba(102, 192, 244, 0.44);
+            box-shadow:
+                0 24px 44px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(102, 192, 244, 0.18),
+                0 0 24px rgba(102, 192, 244, 0.24);
+        }
+
+        .card:hover::after {
+            opacity: 1;
+        }
+
+        .thumb {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 616 / 353;
+            overflow: hidden;
+            background: #0b1118;
+        }
+
+        .thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 220ms ease;
+        }
+
+        .card:hover .thumb img {
+            transform: scale(1.05);
+        }
+
+        .thumb::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0;
+            height: 46%;
+            background: linear-gradient(180deg, transparent, rgba(9, 14, 21, 0.85));
+        }
+
+        .meta {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 16px;
+            flex: 1;
+            padding: 18px;
+            text-align: left;
+        }
+
+        .meta h3 {
+            margin: 0;
+            font-size: 22px;
+            line-height: 1.2;
+            color: #ffffff;
+        }
+
+        .meta p {
+            margin: 10px 0 0;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #9fb0be;
+        }
+
+        .capsule-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .capsule-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            background: rgba(102, 192, 244, 0.08);
+            border: 1px solid rgba(102, 192, 244, 0.16);
+            color: var(--steam-blue);
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .capsule-link {
+            font-size: 12px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #d7eaf7;
+        }
+
+        .empty-state {
+            padding: 36px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(31, 44, 58, 0.96), rgba(16, 24, 34, 0.98));
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: var(--steam-shadow);
+            text-align: center;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            backdrop-filter: blur(8px);
+            background: rgba(3, 7, 12, 0.76);
+            z-index: 20;
+        }
+
+        .modal {
+            width: min(980px, 100%);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            overflow-x: hidden;
+            border-radius: 18px;
+            background:
+                linear-gradient(180deg, rgba(39, 55, 73, 0.98), rgba(15, 23, 32, 0.99)),
+                var(--steam-card-soft);
+            border: 1px solid rgba(102, 192, 244, 0.18);
+            box-shadow:
+                0 30px 80px rgba(0, 0, 0, 0.62),
+                0 0 0 1px rgba(102, 192, 244, 0.08);
+        }
+
+        .modal-shell {
+            display: grid;
+            grid-template-columns: minmax(400px, 460px) minmax(0, 1fr);
+            gap: 24px;
+            padding: 24px;
+            min-height: 0;
+            overflow-x: hidden;
+        }
+
+        .modal-media {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .modal-img {
+            width: 100%;
+            overflow: hidden;
+            border-radius: 14px;
+            border: 1px solid rgba(102, 192, 244, 0.14);
+            background: #0b1118;
+            box-shadow: 0 20px 34px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-img img,
+        #modalImage {
+            width: 100%;
+            height: auto;
+            max-height: 48vh;
+            object-fit: contain;
+            display: block;
+        }
+
+        .modal-content {
+            min-width: 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 6px 4px 6px 0;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 16px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 34px;
+            line-height: 1.08;
+            color: #ffffff;
+        }
+
+        #modalSub {
+            margin-top: 10px;
+            color: var(--steam-blue);
+            font-size: 12px;
+            line-height: 1.6;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .close-btn {
+            flex: 0 0 auto;
+            width: 42px;
+            height: 42px;
+            margin-right: 2px;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            color: #dcecf8;
+            font-size: 22px;
+            cursor: pointer;
+            transform-origin: center;
+            transition: background 160ms ease, transform 160ms ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(102, 192, 244, 0.18);
+            transform: rotate(90deg);
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 0.9fr;
+            gap: 22px;
+            margin-top: 22px;
+        }
+
+        .desc {
+            margin: 0;
+            padding-right: 6px;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.65;
+            color: #d5e6f0;
+        }
+
+        .fact-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .fact {
+            min-width: 118px;
+            padding: 12px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .fact strong {
+            display: block;
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--steam-muted);
+        }
+
+        .fact span {
+            display: block;
+            margin-top: 8px;
+            font-size: 18px;
+            color: #ffffff;
+        }
+
+        .btn-steam {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: auto;
+            min-height: 52px;
+            min-width: 220px;
+            padding: 14px 18px;
+            border-radius: 4px;
+            background: linear-gradient(180deg, var(--steam-green-top), var(--steam-green-bottom));
+            color: #f7fff0;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            font-size: 15px;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 18px 34px rgba(57, 93, 14, 0.38);
+            transition: transform 180ms ease, filter 180ms ease;
+        }
+
+        .btn-steam:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+        }
+
+        @media (max-width: 960px) {
+            .steam-header {
+                padding: 16px 20px;
+                flex-wrap: wrap;
+                height: auto;
+                min-height: 84px;
+            }
+
+            .dropdown {
+                right: 20px;
+            }
+
+            .content {
+                padding: 24px 20px 34px;
+            }
+
+            .store-hero {
+                padding: 24px;
+            }
+
+            .store-hero h2 {
+                font-size: 26px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .header-title {
+                font-size: 26px;
+            }
+
+            .profile-area {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .dropdown {
+                left: 20px;
+                right: 20px;
+                width: auto;
+            }
+
+            .store-hero h2 {
+                font-size: 40px;
+            }
+
+            .modal-header h2 {
+                font-size: 28px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .modal-shell {
+                grid-template-columns: 1fr;
+                gap: 18px;
+                padding: 18px;
+            }
+
+            .modal-content {
+                padding: 0;
+            }
+
+            .modal-img img,
+            #modalImage {
+                max-height: none;
+            }
+
+            .btn-steam {
+                width: 100%;
+                min-width: 0;
+                align-self: stretch;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="steam-header">
-    <div class="header-title">Ludex</div>
+    <div class="steam-header">
+        <div class="header-brand">
+            <div class="header-title">LUDEX</div>
+            <div class="header-subtitle">HYBRID RECOMMENDATION SYSTEM</div>
+        </div>
 
-    <div id="profileBtn" class="profile-area">
-        <div class="avatar" style="background-image:url('{{ avatar or "/static/default-avatar.png" }}')"></div>
-        <div class="player-name">{{ username or steamid }}</div>
+        <div id="profileBtn" class="profile-area">
+            <div class="avatar" style="background-image:url('{{ avatar or " /static/default-avatar.png" }}')"></div>
+            <div class="profile-copy">
+                <small>Viewing as</small>
+                <div class="player-name">{{ username or steamid }}</div>
+            </div>
+        </div>
+
+        <div id="dropdown" class="dropdown">
+            <div class="avatar-large" style="background-image:url('{{ avatar or " /static/default-avatar.png" }}')">
+            </div>
+            <div class="name">{{ username or steamid }}</div>
+            <div class="meta-line">Steam storefront session</div>
+            <a class="logout-btn" href="/logout">Logout</a>
+        </div>
     </div>
 
-    <div id="dropdown" class="dropdown">
-        <div class="avatar-large" style="background-image:url('{{ avatar or "/static/default-avatar.png" }}')"></div>
-        <div class="name">{{ username or steamid }}</div>
-        <a class="logout-btn" href="/logout">Logout</a>
+    <div class="content">
+        <div class="store-shell">
+            <section class="store-hero">
+                <div class="store-tag">Steam Store Capsule View</div>
+                <h2>Your Game Recommendations</h2>
+                <p>
+                    Browse your suggested titles in a store-inspired layout designed to feel closer to the official
+                    Steam discovery experience. Hover any capsule for a closer look, then open its preview for more
+                    details.
+                </p>
+                <div class="store-highlight">
+                    Personalized discovery
+                    <strong>Curated by Ludex</strong>
+                </div>
+            </section>
+
+            {% if recs %}
+            <div class="grid">
+                {% for r in recs %}
+                <div class="card" onclick="openModal(this)" data-appid="{{ r.appid }}" data-name="{{ r.name|e }}"
+                    data-image="{{ r.image|e }}" data-short="{{ r.short_description|e }}"
+                    data-genres="{{ (r.genres|join(', '))|e }}" data-price="{{ r.price|e }}"
+                    data-metacritic="{{ r.metacritic or '' }}" data-release="{{ r.release_date|e }}"
+                    data-recommendations="{{ r.recommendations or '' }}">
+
+                    <div class="thumb"><img src="{{ r.image }}" alt="{{ r.name }}"></div>
+
+                    <div class="meta">
+                        <div>
+                            <h3>{{ r.name }}</h3>
+                            <p>{{ r.genres|join(', ') }}</p>
+                        </div>
+
+                        <div class="capsule-footer">
+                            <div class="capsule-badge">Store Preview</div>
+                            <div class="capsule-link">Open Details</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No recommendations found.</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
-</div>
 
-<div class="content">
-    <div class="box">
-        <h2>Your Game Recommendations</h2>
+    <div id="modalBackdrop" class="modal-backdrop" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-shell">
+                <div class="modal-media">
+                    <div class="modal-img"><img id="modalImage"></div>
 
-        {% if recs %}
-        <div class="grid">
-            {% for r in recs %}
-            <div class="card" onclick="openModal(this)"
-                data-appid="{{ r.appid }}"
-                data-name="{{ r.name|e }}"
-                data-image="{{ r.image|e }}"
-                data-short="{{ r.short_description|e }}"
-                data-genres="{{ (r.genres|join(', '))|e }}"
-                data-price="{{ r.price|e }}"
-                data-metacritic="{{ r.metacritic or '' }}"
-                data-release="{{ r.release_date|e }}"
-                data-recommendations="{{ r.recommendations or '' }}">
+                    <div class="fact-panel">
+                        <div class="fact">
+                            <strong>Price</strong>
+                            <span id="modalPrice"></span>
+                        </div>
+                        <div class="fact">
+                            <strong>Release</strong>
+                            <span id="modalRelease"></span>
+                        </div>
+                        <div class="fact">
+                            <strong>Metacritic</strong>
+                            <span id="modalRating"></span>
+                        </div>
+                    </div>
+                </div>
 
-                <div class="thumb"><img src="{{ r.image }}" alt="{{ r.name }}"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <h2 id="modalTitle"></h2>
+                            <div id="modalSub"></div>
+                        </div>
+                        <button class="close-btn" onclick="closeModal(event)">&times;</button>
+                    </div>
 
-                <div class="meta">
-                    <h3>{{ r.name }}</h3>
-                    <p>{{ r.genres|join(', ') }}</p>
+                    <div class="desc" id="modalDesc"></div>
+
+                    <a id="modalSteamBtn" class="btn-steam" target="_blank">View on Steam</a>
                 </div>
             </div>
-            {% endfor %}
         </div>
-        {% else %}
-        <p>No recommendations found.</p>
-        {% endif %}
     </div>
-</div>
 
-<!-- MODAL -->
-<div id="modalBackdrop" class="modal-backdrop" onclick="closeModal(event)">
-    <div class="modal" onclick="event.stopPropagation()">
-        <button class="close-btn" onclick="closeModal(event)">&times;</button>
+    <script>
+        const dd = document.getElementById("dropdown"),
+            btn = document.getElementById("profileBtn");
 
-        <div class="modal-top">
-            <div class="modal-img"><img id="modalImage"></div>
-            <div class="modal-info">
-                <h2 id="modalTitle"></h2>
-                <div id="modalSub"></div>
+        btn.onclick = () => dd.style.display = dd.style.display === "flex" ? "none" : "flex";
 
-                <div><strong>Price:</strong> <span id="modalPrice"></span></div>
-                <div style="margin-top:6px;"><strong>Release:</strong> <span id="modalRelease"></span></div>
-                <div style="margin-top:6px;"><strong>Rating:</strong> <span id="modalRating"></span></div>
+        document.addEventListener("click", e => {
+            if (!btn.contains(e.target) && !dd.contains(e.target)) dd.style.display = "none";
+        });
 
-                <a id="modalSteamBtn" class="btn-steam" target="_blank">View on Steam</a>
-            </div>
-        </div>
+        function openModal(c) {
+            modalImage.src = c.dataset.image;
+            modalTitle.textContent = c.dataset.name;
+            modalPrice.textContent = c.dataset.price || "N/A";
+            modalRelease.textContent = c.dataset.release || "Unknown";
+            modalRating.textContent = c.dataset.metacritic || "N/A";
+            modalDesc.innerHTML = c.dataset.short || "No description available";
 
-        <div class="desc" id="modalDesc"></div>
-    </div>
-</div>
+            const sub = [];
+            if (c.dataset.genres) sub.push(c.dataset.genres);
+            if (c.dataset.recommendations) sub.push(c.dataset.recommendations + " players recommended");
+            modalSub.textContent = sub.join(" • ");
 
-<script>
-    const dd = document.getElementById("dropdown"),
-          btn = document.getElementById("profileBtn");
+            modalSteamBtn.href = "https://store.steampowered.com/app/" + c.dataset.appid;
+            modalBackdrop.style.display = "flex";
+        }
 
-    btn.onclick = ()=> dd.style.display = dd.style.display==="flex" ? "none" : "flex";
+        function closeModal() {
+            modalBackdrop.style.display = "none";
+        }
 
-    document.addEventListener("click", e=>{
-        if(!btn.contains(e.target) && !dd.contains(e.target)) dd.style.display="none";
-    });
-
-    function openModal(c){
-        modalImage.src = c.dataset.image;
-        modalTitle.textContent = c.dataset.name;
-        modalPrice.textContent = c.dataset.price || "N/A";
-        modalRelease.textContent = c.dataset.release || "Unknown";
-        modalRating.textContent = c.dataset.metacritic || "N/A";
-        modalDesc.innerHTML = c.dataset.short || "No description available";
-
-        const sub = [];
-        if(c.dataset.genres) sub.push(c.dataset.genres);
-        if(c.dataset.recommendations) sub.push(c.dataset.recommendations+" players recommended");
-        modalSub.textContent = sub.join(" • ");
-
-        modalSteamBtn.href = "https://store.steampowered.com/app/" + c.dataset.appid;
-        modalBackdrop.style.display="flex";
-    }
-
-    function closeModal(){ modalBackdrop.style.display="none"; }
-    document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); });
-</script>
+        document.addEventListener("keydown", e => {
+            if (e.key === "Escape") closeModal();
+        });
+    </script>
 
 </body>
+
 </html>
