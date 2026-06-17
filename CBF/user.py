@@ -25,7 +25,7 @@ def fetch_owned_games(steamid64: str, api_key: str) -> pd.DataFrame:
         "include_played_free_games": 1,
         "format": "json",
     }
-    resp = requests.get(url, params=params)
+    resp = requests.get(url, params=params, timeout=10)
     resp.raise_for_status()
 
     games = resp.json().get("response", {}).get("games", [])

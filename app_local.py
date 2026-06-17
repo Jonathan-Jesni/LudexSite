@@ -13,25 +13,15 @@ from CBF.CBF_recommend import generate_cbf_recommendations
 from CBF.cbf_model import load_catalogue_and_features
 from CF.CF_recommend import generate_cf_recommendations
 
-CATALOGUE_DF = None
-FULL_MATRIX = None
-
-def get_cbf_data():
-    global CATALOGUE_DF, FULL_MATRIX
-    if CATALOGUE_DF is None or FULL_MATRIX is None:
-        from CBF.cbf_model import load_catalogue_and_features
-        CATALOGUE_DF, FULL_MATRIX = load_catalogue_and_features()
-    return CATALOGUE_DF, FULL_MATRIX
-
 # --- HYBRID SETTINGS ---
 TOP_N = 20
-CANDIDATE_POOL_SIZE = 50  
+CANDIDATE_POOL_SIZE = 300  
 MIN_PLAYTIME = 60
 LAMBDA_MMR_CBF = 0.0
 LAMBDA_MMR_HYBRID = 0.6
 BETA_ANCHOR_BLEND = 0.3
 ALPHA_HYBRID = 0.35
-METADATA_THREADS = 2    
+METADATA_THREADS = 4    
 
 
 # ======================================================
@@ -40,19 +30,14 @@ METADATA_THREADS = 2
 app = Flask(__name__)
 app.secret_key = os.environ.get("LUDEX_SECRET")
 app.config.update(
-    SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
 )
 
 STEAM_API_KEY = os.environ.get("STEAM_API_KEY")
-APP_URL = os.environ.get("APP_URL")
+realm = "https://ludex.up.railway.app/"
+return_to = "https://ludex.up.railway.app/authorize"
 
-if not APP_URL:
-    APP_URL = "http://127.0.0.1:10000"
-
-realm = APP_URL
-return_to = f"{APP_URL}/authorize"
 
 # ======================================================
 # METADATA FETCH
@@ -106,7 +91,9 @@ def cached_store_metadata(appid: str):
 # ======================================================
 # LOAD CATALOGUE + MATRIX WITH CACHE
 # ======================================================
-# Now using get_cbf_data()
+@lru_cache(maxsize=1)
+def load_cached_catalogue_and_features():
+    return load_catalogue_and_features()
 
 
 # ======================================================
@@ -126,7 +113,7 @@ def normalise_scores(arr):
 # MMR
 # ======================================================
 def mmr_rerank(appids, hybrid_scores, lambda_mmr, top_k):
-    catalogue_df, full_matrix_norm = get_cbf_data()
+    catalogue_df, full_matrix_norm = load_cached_catalogue_and_features()
     appid_to_idx = {int(a): i for i, a in enumerate(catalogue_df["appid"].astype(int))}
 
     appids = np.asarray(appids, dtype=int)
@@ -142,7 +129,7 @@ def mmr_rerank(appids, hybrid_scores, lambda_mmr, top_k):
     mat_rows = row_idx[mask]
 
     cand_vecs = full_matrix_norm[mat_rows]
-    sim_matrix = cand_vecs @ cand_vecs.T
+    sim_matrix = (cand_vecs @ cand_vecs.T).toarray()
 
     selected_local = []
     r_valid = hybrid_scores[mask]
@@ -232,88 +219,71 @@ def recommend():
 
     print("0) start:", time.time() - t0)
 
-    from CF.CF_recommend import generate_cf_recommendations
-    from CBF.CBF_recommend import generate_cbf_recommendations
-    import numpy as np
-    import pandas as pd
-
-    catalogue_df, full_matrix = get_cbf_data()
-
-    cbf_recs = generate_cbf_recommendations(
-        steamid64=str(steamid),
+    # 1) CBF
+    cbf = generate_cbf_recommendations(
+        steamid64=steamid,
         api_key=STEAM_API_KEY,
-        top_n=25
+        top_n=CANDIDATE_POOL_SIZE,
+        min_playtime=MIN_PLAYTIME,
+        candidate_pool_size=CANDIDATE_POOL_SIZE,
+        beta_anchor_blend=BETA_ANCHOR_BLEND,
+        lambda_mmr=LAMBDA_MMR_CBF
+    )
+    print("1) CBF done:", time.time() - t0)
+
+    if "cbf_anchor_combined" in cbf.columns:
+        cbf["cbf_score_raw"] = cbf["cbf_anchor_combined"]
+    else:
+        cbf["cbf_score_raw"] = 0.0
+    cbf_df = cbf[["appid", "title", "cbf_score_raw"]]
+
+    # 2) CF
+    cf = generate_cf_recommendations(
+        steamid64=steamid,
+        top_k=CANDIDATE_POOL_SIZE
+    )
+    print("2) CF done:", time.time() - t0)
+
+    # 3) Merge
+    if cf is not None and not cf.empty:
+        union = pd.merge(
+            cbf_df,
+            cf[["appid", "cf_score_raw"]],
+            on="appid",
+            how="outer"
+        )
+    else:
+        union = cbf_df.copy()
+        union["cf_score_raw"] = 0.0
+
+    print("3) merge:", time.time() - t0)
+
+    # Normalize
+    union = union.fillna({"cbf_score_raw": 0.0, "cf_score_raw": 0.0})
+    union["cbf_norm"] = normalise_scores(union["cbf_score_raw"])
+    union["cf_norm"] = normalise_scores(union["cf_score_raw"])
+    union["hybrid"] = (
+        ALPHA_HYBRID * union["cf_norm"] +
+        (1 - ALPHA_HYBRID) * union["cbf_norm"]
     )
 
-    cf_recs = generate_cf_recommendations(
-        steamid64=str(steamid),
-        top_k=25
+    print("4) hybrid computed:", time.time() - t0)
+
+    # 4) MMR
+    selected = mmr_rerank(
+        appids=union["appid"].astype(int).to_numpy(),
+        hybrid_scores=union["hybrid"].to_numpy(),
+        lambda_mmr=LAMBDA_MMR_HYBRID,
+        top_k=TOP_N
     )
+    print("5) MMR rerank:", time.time() - t0)
 
-    if cbf_recs is None or cbf_recs.empty:
-        merged = cf_recs.copy()
-    elif cf_recs is None or cf_recs.empty:
-        merged = cbf_recs.copy()
-    else:
-        merged = pd.merge(cbf_recs, cf_recs, on="appid", how="outer")
-
-    # Safely extract CBF score (using the anchor-blended score for better accuracy)
-    merged["cbf_score"] = merged["cbf_anchor_combined"].fillna(0) if "cbf_anchor_combined" in merged.columns else 0
-    
-    # Safely extract CF score
-    merged["cf_score"] = merged["cf_score_raw"].fillna(0) if "cf_score_raw" in merged.columns else 0
-
-    merged["score"] = 0.6 * merged["cbf_score"] + 0.4 * merged["cf_score"]
-
-    candidates = merged.sort_values("score", ascending=False).head(25).reset_index(drop=True)
-
-    appid_to_idx = {int(a): i for i, a in enumerate(catalogue_df["appid"])}
-
-    valid_rows = []
-    valid_indices = []
-    for i, appid in enumerate(candidates["appid"]):
-        idx = appid_to_idx.get(int(appid), -1)
-        if idx >= 0:
-            valid_rows.append(idx)
-            valid_indices.append(i)
-    valid_rows = valid_rows[:20]
-    valid_indices = valid_indices[:20]
-
-    if not valid_rows:
-        final = candidates.head(20)
-    else:
-        scores = candidates.iloc[valid_indices]["score"].values
-        selected = []
-        selected_global = []
-
-        for _ in range(min(20, len(valid_rows))):
-            if not selected:
-                idx = int(np.argmax(scores))
-            else:
-                sims = []
-                for i, global_idx in enumerate(valid_rows):
-                    if i in selected:
-                        sims.append(0)
-                        continue
-
-                    row_vec = full_matrix[global_idx]
-                    sel_vecs = full_matrix[[valid_rows[j] for j in selected]]
-
-                    sim = row_vec.dot(sel_vecs.T)
-                    sim = sim.toarray().ravel() # <--- THE FIX
-                    sims.append(sim.max() if sim.size > 0 else 0)
-
-                max_sim = np.array(sims)
-                mmr = 0.7 * scores - 0.3 * max_sim
-                mmr[selected] = -np.inf
-                idx = int(np.argmax(mmr))
-
-            selected.append(idx)
-
-        final = candidates.iloc[[valid_indices[i] for i in selected]]
+    # Convert to list
+    final = union.iloc[selected].reset_index(drop=True)
     recs = final.to_dict(orient="records")
 
-    from concurrent.futures import ThreadPoolExecutor
+    # 5) Metadata
+    from concurrent.futures import ThreadPoolExecutor, as_completed
 
     def enrich(r):
         meta = cached_store_metadata(str(r["appid"]))
@@ -322,7 +292,7 @@ def recommend():
 
     with ThreadPoolExecutor(max_workers=METADATA_THREADS) as exe:
         futures = [exe.submit(enrich, r) for r in recs]
-        recs = [f.result() for f in futures]
+        recs = [f.result() for f in as_completed(futures)]
 
     print("6) metadata:", time.time() - t0)
     print("===== END TIMING =====\n")
@@ -344,7 +314,7 @@ def warm_cache_async():
 
     def _load():
         try:
-            get_cbf_data()
+            load_cached_catalogue_and_features()
             app.logger.info("Pre-warm complete.")
         except Exception:
             app.logger.exception("Pre-warm failed.")
@@ -361,4 +331,4 @@ warm_cache_async()
 # RUN APP
 # ======================================================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    app.run(debug=True)
